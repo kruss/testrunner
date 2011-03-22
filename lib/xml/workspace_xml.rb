@@ -1,7 +1,6 @@
 # generates xml output for test-results of an workspace
 
 require "core/cppunit_runner"
-require "util/xml_util"
 require "util/logger"
 
 class WorkspaceXml
@@ -22,7 +21,7 @@ class WorkspaceXml
     unitTests = unitTests.sort_by{|item| item.projectName}
     unitTests.each do |unitTest|
       testResult = Feedback::Result.new(unitTest.projectName)
-      testResult.resolution = getResolution(unitTest.status).to_s
+      testResult.resolution = getResolution(unitTest.status)
       feedback.results << testResult
     end
     feedback.serialize(outputFile)
