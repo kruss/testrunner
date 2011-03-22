@@ -40,12 +40,19 @@ class CppUnitOutput
 		return htmlOutput.outputFile
 	end
 	
-	def createXmlOutput(cppunitRunner, outputFolder)
-	
-		xmlOutput = WorkspaceXml.new(@workspaceFolder, outputFolder)
-		xmlOutput.createXmlOutput(cppunitRunner)
-		Logger.log "xml-output: "+xmlOutput.outputFile
-		return xmlOutput.outputFile
-	end
+  def createXmlOutput(cppunitRunner, outputFolder)
+    
+    begin
+      require "feedback"
+    rescue Exception => e
+      Logger.error e.message
+      return nil
+    end
+    
+    xmlOutput = WorkspaceXml.new(@workspaceFolder, outputFolder)
+    xmlOutput.createXmlOutput(cppunitRunner)
+    Logger.log "xml-output: "+xmlOutput.outputFile
+    return xmlOutput.outputFile
+  end
 
 end

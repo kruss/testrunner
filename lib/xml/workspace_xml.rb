@@ -12,32 +12,34 @@ class WorkspaceXml
 	end
 	
 	def outputFile
-		return @outputFolder+"/"+$AppName+".xml"
+		return @outputFolder+"/"+Feedback::Feedback.OUTPUT_FILE
 	end
 	
 	def createXmlOutput(cppunitRunner)
-
-  unitTests = cppunitRunner.unitTests
-
-		# create xml
-		xml = XmlUtil.getHeader
-    xml << XmlUtil.openTag($AppName, {
-      "path"=>@workspaceFolder,
-      "status"=>Status::getString(cppunitRunner.status)
-    })
+    
+    feedback = Feedback::Feedback.new()
+    unitTests = cppunitRunner.unitTests
     unitTests = unitTests.sort_by{|item| item.projectName}
     unitTests.each do |unitTest|
-    
-      xml << XmlUtil.openTag("unittest", {
-        "name"=>unitTest.projectName,
-        "status"=>Status::getString(unitTest.status)
-      })
-      xml << XmlUtil.closeTag("unittest")
-    
+      testResult = Feedback::Result.new(unitTest.projectName)
+      testResult.resolution = getResolution(unitTest.status).to_s
+      feedback.results << testResult
     end
-    xml << XmlUtil.closeTag($AppName)
-		
-		# output
-		FileUtil.writeFile(outputFile, xml)
+    feedback.serialize(outputFile)
+    
 	end
+  
+  def getResolution(status)
+
+    case status
+      when 2 # SUCCEED
+        return Feedback::Result.RESOLUTION[2] # SUCCEED
+      when 3 # ERROR
+      when 4 # FAILURE
+        return Feedback::Result.RESOLUTION[3] # ERROR
+      else
+        return Feedback::Result.RESOLUTION[0] # UNDEFINED
+    end
+  end
+  
 end

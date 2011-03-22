@@ -56,6 +56,13 @@ class WorkspaceHtml
     else
       html << "<ul><i>empty</i></ul> \n"
     end
+    
+    # logfile
+    if FileTest.file?(Logger.getLogfile()) then
+       html << "<p> \n"
+       html << "<a href='"+$AppName+".log'>Logfile</a> \n"
+       html << "</p> \n"
+    end
 		
 		# footer
 		html << HtmlUtil.getFooter
