@@ -27,18 +27,20 @@ class WorkspaceXml
       elsif unitTest.status == Status::ERROR then
         testResult.resolution = Feedback::Result.RESOLUTION[3] # ERROR
         if unitTest.testTotal >= 0 && unitTest.testFailed >= 0 then
-          testResult.messages << unitTest.testFailed.to_s+" test failed"
+          testResult.messages << unitTest.testFailed.to_s+" / "+unitTest.testTotal.to_s+" test failed"
         else
           testResult.messages << "test failed"
         end
       elsif unitTest.status == Status::SUCCEED then
         testResult.resolution = Feedback::Result.RESOLUTION[2] # SUCCEED
+        if unitTest.testTotal >= 0 then
+          testResult.messages << unitTest.testTotal.to_s+" test ok"
+        else
+          testResult.messages << "test ok"
+        end
       else
         testResult.resolution = Feedback::Result.RESOLUTION[0] # UNDEFINED
         testResult.messages << "No data available"
-      end
-      if unitTest.testTotal >= 0 && unitTest.testOk >= 0 then
-        testResult.values["tests"] = unitTest.testOk.to_s+" / "+unitTest.testTotal.to_s+" Ok"
       end
       feedback.results << testResult
     end
