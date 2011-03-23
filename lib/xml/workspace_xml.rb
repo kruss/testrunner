@@ -21,24 +21,29 @@ class WorkspaceXml
     unitTests = unitTests.sort_by{|item| item.projectName}
     unitTests.each do |unitTest|
       testResult = Feedback::Result.new(unitTest.projectName)
-      testResult.resolution = getResolution(unitTest.status)
+      if unitTest.status == Status::FAILURE then
+        testResult.resolution = Feedback::Result.RESOLUTION[3] # ERROR
+        testResult.messages << "Could not execute unit-test"
+      elsif unitTest.status == Status::ERROR then
+        testResult.resolution = Feedback::Result.RESOLUTION[3] # ERROR
+        if unitTest.testTotal >= 0 && unitTest.testFailed >= 0 then
+          testResult.messages << unitTest.testFailed.to_s+" test failed"
+        else
+          testResult.messages << "test failed"
+        end
+      elsif unitTest.status == Status::SUCCEED then
+        testResult.resolution = Feedback::Result.RESOLUTION[2] # SUCCEED
+      else
+        testResult.resolution = Feedback::Result.RESOLUTION[0] # UNDEFINED
+        testResult.messages << "No data available"
+      end
+      if unitTest.testTotal >= 0 && unitTest.testOk >= 0 then
+        testResult.values["tests"] = unitTest.testOk.to_s+" / "+unitTest.testTotal.to_s+" Ok"
+      end
       feedback.results << testResult
     end
     feedback.serialize(outputFile)
     
 	end
-  
-  def getResolution(status)
-
-    case status
-      when 2 # SUCCEED
-        return Feedback::Result.RESOLUTION[2] # SUCCEED
-      when 3 # ERROR
-      when 4 # FAILURE
-        return Feedback::Result.RESOLUTION[3] # ERROR
-      else
-        return Feedback::Result.RESOLUTION[0] # UNDEFINED
-    end
-  end
   
 end

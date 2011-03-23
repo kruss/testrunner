@@ -2,3 +2,22 @@ testrunner is a ruby gem to run cppunit-tests within a workspace.
 cppunit-tests must be already compiled,- output is written to .testrunner metafolder.
 
 usage: testrunner <workspace> [options ...]
+
+testrunner will call the unit-tests with command: some-test.exe -xml=cppunit.xml > cppunit.log
+and copy cppunit.log & cppunit.xml to the metafolder if generated
+
+if xml-output is generated test-results will be parsed 
+within cppunit.xml by below format:
+
+<TestRun>
+...
+  <Statistics>
+    <Tests>2</Tests>
+    <FailuresTotal>1</FailuresTotal>
+    <Errors>0</Errors>
+    <Failures>1</Failures>
+  </Statistics>
+</TestRun>
+
+if no xml-output is generated test-results will be parsed 
+by "!!!FAILURES!!!" pattern within cppunit.log
