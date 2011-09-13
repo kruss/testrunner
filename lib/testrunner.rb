@@ -3,46 +3,37 @@
 require "optparse"
 require "core/cppunit_runner"
 require "core/cppunit_output"
-require "util/logger"
+require "util/gem_logger"
 
 $AppName = "testrunner"
-$AppNameUI = "CppUnit"
-$AppVersion = "0.1.0"
+$AppNameUI = "Testrunner"
+$AppVersion = "0.1.1"
 $AppOutput = ".testrunner"
 $AppOptions = {}
 
 class TestRunner
 
 	def initialize()
-
 		setOptions()
 	end
 	
 	# run unit-tests
 	def run()
-
 		if validOptions() then
-
 			createOutputFolder()
-			Logger.setLogfile($AppOptions[:output]+"/"+$AppName+".log")
-	
-			Logger.info $AppName+" ("+$AppVersion+")"
-			Logger.log "workspace-folder: "+$AppOptions[:workspace]
-			Logger.log "output-folder: "+$AppOptions[:output]
-			
+			logger = GemLogger.new("#{$AppOptions[:output]}/#{$AppName}.log", $AppOptions[:verbose])
 			begin
-				runApplication()
-			rescue => exception
-				Logger.trace exception
-				exit(-1)
-			end
-			
+        logger.emph "#{$AppName} (#{$AppVersion})"   
+				runApplication(logger)
+      rescue => error
+        logger.dump error
+        exit(-1)
+      end
 			if $AppOptions[:xml] then 
 				deleteOutputFolder()
 			end
 			exit(0)
 		else
-		
 			puts "try "+$AppName+" --help"
 			exit(-1)
 		end
@@ -51,7 +42,6 @@ class TestRunner
 private
 	
 	def setOptions()
-		
 		$AppOptions.clear
 		
 		# parse explicit options
@@ -87,6 +77,11 @@ private
         opts.on("-f", "--fail", "Fail on errors") do
         $AppOptions[:fail] = true
       end
+
+      $AppOptions[:verbose] = false
+        opts.on("-v", "--verbose", "Print additional logging") do
+        $AppOptions[:verbose] = true
+      end
     
 			opts.on("-h", "--help", "Display this screen") do
 				puts opts
@@ -112,7 +107,6 @@ private
 	end
 	
 	def validOptions()
-	
 		if 
 			$AppOptions[:workspace] != nil && 
 			$AppOptions[:output] != nil && 
@@ -125,7 +119,6 @@ private
 	end
 	
 	def cleanPath(path)
-	
 		if path == "." then
 			return Dir.getwd
 		elsif path == ".." then
@@ -136,31 +129,29 @@ private
 	end
 	
 	def createOutputFolder
-
 		deleteOutputFolder
 		FileUtils.mkdir_p($AppOptions[:output])
 	end
 	
 	def deleteOutputFolder
-	
 		if FileTest.directory?($AppOptions[:output]) then 
 			FileUtils.rm_rf($AppOptions[:output])
 		end
 	end
 
-	def runApplication()
+	def runApplication(logger)
 		
 		# run unit-tests
-		cppunitRunner = CppUnitRunner.new($AppOptions[:workspace], $AppOptions[:output])
+		cppunitRunner = CppUnitRunner.new($AppOptions[:workspace], $AppOptions[:output], logger)
     cppunitRunner.fetchUnitTests
 		cppunitRunner.runUnitTests
 	
 		# create output
-		cppunitOutput = CppUnitOutput.new($AppOptions[:workspace], $AppOptions[:output])
+		cppunitOutput = CppUnitOutput.new($AppOptions[:workspace], $AppOptions[:output], logger)
 		cppunitOutput.createOutput(cppunitRunner)
 
     # final status
-    Logger.info("Status: "+Status::getString(cppunitRunner.status))
+    logger.emph "#{Status::getString(cppunitRunner.status)}"
     if $AppOptions[:fail] && cppunitRunner.status == Status::ERROR then
       exit(-1)
     end

@@ -3,15 +3,15 @@
 require "rake"
 require "pathname"
 require "data/unit_test"
-require "util/logger"
 
 class CppUnitRunner
 
-	def initialize(workspaceFolder, outputFolder)
+	def initialize(workspaceFolder, outputFolder, logger)
 		@workspaceFolder = workspaceFolder		      # workspace-folder path
 		@outputFolder = outputFolder			          # output-folder path
+    @logger = logger
     
-		@unitTests = Array.new					# unit-tests within workspace
+		@unitTests = Array.new					            # unit-tests within workspace
     @status = Status::UNDEFINED
 	end
 	
@@ -19,42 +19,44 @@ class CppUnitRunner
   attr_accessor :status
 
 	def fetchUnitTests
-		
-    testExecutables = FileList.new(@workspaceFolder+"/*/"+$AppOptions[:config]+"/*."+$AppOptions[:extention])
+		executable_pattern = "#{@workspaceFolder}/*/#{$AppOptions[:config]}/*.#{$AppOptions[:extention]}"
+    @logger.info "search test-executables: #{executable_pattern}" 
+    testExecutables = FileList.new(executable_pattern)
+    @logger.info "=> test-executables: #{testExecutables.size}"
+    
     testExecutables.each do |testExecutable|
       testExecutablePath = testExecutable.to_s
-      Logger.debug testExecutablePath
-      
+      @logger.info "test-executable: #{testExecutablePath}"
       projectName = Pathname.new(testExecutablePath).relative_path_from(Pathname.new(@workspaceFolder)).to_s.split("/")[0]
       projectFolder = @workspaceFolder+"/"+projectName
       
       unitTest = @unitTests.find{ |item| item.projectName.eql?(projectName) }
       if unitTest == nil then
+        @logger.debug "=> adding unit-test: #{projectFolder}"
         outputFolder = @outputFolder+"/"+projectName
-        unitTest = UnitTest.new(projectName, projectFolder, outputFolder, testExecutable)
+        unitTest = UnitTest.new(projectName, projectFolder, outputFolder, testExecutable, @logger)
         @unitTests << unitTest
       end
     end
-    Logger.log "unit-tests: "+@unitTests.size().to_s
+    @logger.info "=> tests: #{@unitTests.size}"
 	end
 	
 	def runUnitTests
-		
 		@unitTests.each do |unitTest|
-			Logger.info "unit-test - "+unitTest.projectName
+      @logger.emph unitTest.projectName
       begin
   			unitTest.createOutputFolder
   			unitTest.runUnitTest
-        unitTest.getTestResults
-      rescue Exception => e  
-        Logger.error e.message
+        unitTest.moveTestOutput
+        unitTest.evaluateTestOutput
+      rescue => error
+        @logger.dump error
         unitTest.status = Status::FAILURE
       end
 		end
 	end
 
   def status
-    
     if @unitTests.size() > 0 then
       @unitTests.each do |unitTest|
         if unitTest.status != Status::SUCCEED then

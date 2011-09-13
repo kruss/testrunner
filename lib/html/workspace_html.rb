@@ -3,13 +3,12 @@
 require "core/cppunit_runner"
 require "util/html_util"
 require "util/file_util"
-require "util/logger"
 
 class WorkspaceHtml
 
 	def initialize(workspaceFolder, outputFolder)
 		@workspaceFolder = workspaceFolder		# workspace-folder path
-		@outputFolder = outputFolder			# output-folder path
+		@outputFolder = outputFolder			    # output-folder path
 	end
 	
 	def outputFile
@@ -64,7 +63,7 @@ class WorkspaceHtml
     end
     
     # logfile
-    if FileTest.file?(Logger.getLogfile()) then
+    if FileTest.file?("#{$AppOptions[:output]}/#{$AppName}.log") then
        html << "<p> \n"
        html << "<a href='"+$AppName+".log'>Logfile</a> \n"
        html << "</p> \n"

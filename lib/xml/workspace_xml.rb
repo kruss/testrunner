@@ -1,13 +1,12 @@
 # generates xml output for test-results of an workspace
 
 require "core/cppunit_runner"
-require "util/logger"
 
 class WorkspaceXml
 
 	def initialize(workspaceFolder, outputFolder)
 		@workspaceFolder = workspaceFolder		# workspace-folder path
-		@outputFolder = outputFolder			# output-folder path
+		@outputFolder = outputFolder			    # output-folder path
 	end
 	
 	def outputFile

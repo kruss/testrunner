@@ -5,14 +5,14 @@ require "xml/workspace_xml"
 
 class CppUnitOutput
 
-	def initialize(workspaceFolder, outputFolder)
-		@workspaceFolder = workspaceFolder		# workspace-folder path
-		@outputFolder = outputFolder			# output-folder path
+	def initialize(workspaceFolder, outputFolder, logger)
+		@workspaceFolder = workspaceFolder		   # workspace-folder path
+		@outputFolder = outputFolder			       # output-folder path
+    @logger = logger 
 	end
 	
 	def createOutput(cppunitRunner)
-	
-		Logger.info "create output"
+		@logger.emph "output"
 		outputFile = nil
 		
 		if !$AppOptions[:xml] then
@@ -23,35 +23,33 @@ class CppUnitOutput
 		end
 		
 		if outputFile != nil && $AppOptions[:browser] then
-			Logger.log "open browser"
+			@logger.info "open browser"
 			begin 
 				FileUtil.openBrowser(outputFile)
-			rescue 
-				Logger.error $!
-			end
+      rescue => error
+        @logger.dump error
+      end
 		end
 	end
 	
 	def createHtmlOutput(cppunitRunner, outputFolder)
-	
 		htmlOutput = WorkspaceHtml.new(@workspaceFolder, outputFolder)
 		htmlOutput.createHtmlOutput(cppunitRunner)
-		Logger.log "html-output: "+htmlOutput.outputFile
+		@logger.info "html-output: "+htmlOutput.outputFile
 		return htmlOutput.outputFile
 	end
 	
   def createXmlOutput(cppunitRunner, outputFolder)
-    
     begin
       require "feedback"
-    rescue Exception => e
-      Logger.error e.message
+    rescue error
+      @logger.warn e.message
       return nil
     end
     
     xmlOutput = WorkspaceXml.new(@workspaceFolder, outputFolder)
     xmlOutput.createXmlOutput(cppunitRunner)
-    Logger.log "xml-output: "+xmlOutput.outputFile
+    @logger.info "xml-output: "+xmlOutput.outputFile
     return xmlOutput.outputFile
   end
 
