@@ -1,23 +1,40 @@
-testrunner is a ruby gem to run cppunit-tests within a workspace.
-cppunit-tests must be already compiled,- output is written to .testrunner metafolder.
+testrunner is a ruby gem to run unit-tests within a workspace.
+
+unit-tests must be compiled,- testrunner will then call the executables depending on type with:
+- cppunit: 'some-test.exe -xml=test.xml > test.log'
+- gtest:   'some-test.exe --gtest_output="xml:test.xml" > test.log'
 
 usage: testrunner <workspace> [options ...]
+=> results are stored in .testrunner folder within workspace.
 
-testrunner will call the unit-tests with command: some-test.exe -xml=cppunit.xml > cppunit.log
-and copy cppunit.log & cppunit.xml to the metafolder if generated
+NOTE
 
-if xml-output is generated test-results will be parsed 
-within cppunit.xml by below format:
+in general a non-zero return-code of test-executable will trigger test as failed,-
+additionally xml or output is evaluated:
+- cppunit:
+	if xml generated with format:
+		<TestRun>
+		...
+		  <Statistics>
+		    <Tests>2</Tests>
+		    <FailuresTotal>1</FailuresTotal>
+		    <Errors>0</Errors>
+		    <Failures>1</Failures>
+		  </Statistics>
+		</TestRun>
+	otherwise output is parsed for content "!!!FAILURES!!!"
+- gtest:
+	if xml generated with format:
+		<?xml version="1.0" encoding="UTF-8"?>
+		<testsuites tests="2" failures="1" disabled="0" errors="0" time="0" name="AllTests">
+		...
+		</testsuites>
+	otherwise output is parsed for content "[  FAILED  ]"
 
-<TestRun>
-...
-  <Statistics>
-    <Tests>2</Tests>
-    <FailuresTotal>1</FailuresTotal>
-    <Errors>0</Errors>
-    <Failures>1</Failures>
-  </Statistics>
-</TestRun>
+HISTORY
 
-if no xml-output is generated test-results will be parsed 
-by "!!!FAILURES!!!" pattern within cppunit.log
+0.1.1
+	added support for gtest / ruby 1.9.2
+0.1.0
+	initial gem 
+	tested under ruby 1.8.6
