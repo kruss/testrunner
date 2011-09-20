@@ -30,8 +30,8 @@ class WorkspaceHtml
     if unitTests.size() > 0 then
       html << "<table cellspacing=0 cellpadding=5 border=1> \n"
       html << "<tr>"
-      html << " <td width=200><b>Project</b></td>"
-      html << " <td width=150><b>Results</b></td>"
+      html << " <td width=150><b>Project</b></td>"
+      html << " <td width=100><b>Results</b></td>"
       html << " <td width=75><b>Status</b></td>"
       html << "</tr> \n"
       idx = 0
