@@ -6,6 +6,10 @@ require "fileutils"
 
 class UnitTest
 
+  TEST_TYPE_UNKNOWN = "UNKNOWN"
+  TEST_TYPE_CPPUNIT = "CPPUNIT"
+  TEST_TYPE_GOOGLE = "GTEST"
+  
 	def initialize(projectName, projectFolder, outputFolder, testExecutable, logger)
 		@projectName = projectName			      # name of project
 		@projectFolder = projectFolder		    # project-folder path
@@ -13,9 +17,10 @@ class UnitTest
     @testExecutable = testExecutable      # test executable file path
     @logger = logger
     
-    @status = Status::UNDEFINED
+    @testType = TEST_TYPE_UNKNOWN
     @testTotal = -1
     @testFailed = -1
+    @status = Status::UNDEFINED
 	end
 	
 	attr_accessor :projectName
@@ -34,49 +39,92 @@ class UnitTest
     end
   end
   
-	def runUnitTest
+  def analyseTest
+    @logger.debug "analyse test: #{@testExecutable}"
+    file = File.new(@testExecutable, "r")
+    begin
+      while (line = file.gets.downcase)
+        if line.include?(TEST_TYPE_CPPUNIT.downcase) then
+          @testType = TEST_TYPE_CPPUNIT
+          break
+        elsif line.include?(TEST_TYPE_GOOGLE.downcase) then
+          @testType = TEST_TYPE_GOOGLE
+          break
+        end
+      end
+    ensure
+      file.close
+    end
+    @logger.debug "=> type: #{@testType}"
+  end
+  
+	def runTest
     @logger.info "run test: #{@testExecutable}"
+    command = "#{File.basename(@testExecutable)}"
+    if @testType.eql?(TEST_TYPE_CPPUNIT) then
+      command = "#{command} -xml=test.xml"
+    elsif @testType.eql?(TEST_TYPE_GOOGLE) then
+      command = "#{command} --gtest_output=\"xml:test.xml\""
+    end
 		FileUtils.cd(getTestFolder()) do
       begin  
-		    command = File.basename(@testExecutable)+" -xml=cppunit.xml > cppunit.log"
-			  Command.call(command, @logger)
+			  Command.call("#{command} > test.log", @logger)
       rescue => error
-        @logger.dump error
-        @status = Status::FAILURE
+        @logger.warn error.message
+        @status = Status::ERROR
       end
 	  end
 	end
  
   def moveTestOutput()
-    moveFile("#{getTestFolder()}/cppunit.log", @outputFolder)
-    moveFile("#{getTestFolder()}/cppunit.xml", @outputFolder)
+    moveFile("#{getTestFolder()}/test.log", @outputFolder)
+    moveFile("#{getTestFolder()}/test.xml", @outputFolder)
   end
 	
   def evaluateTestOutput()
     evaluated = false
+    failed = false
     
-    # ealute results by xmlfile
-    xmlfilePath = @outputFolder+"/cppunit.xml"
-    if FileTest.file?(xmlfilePath) then
-      @logger.info "=> evaluating: "+xmlfilePath 
-      xmlfile = File.new(xmlfilePath, "r")
-      getTestResultsFromXml(xmlfile)
-      xmlfile.close
-      evaluated = true
-    else
-      # ealute results by logfile
-      logfilePath = @outputFolder+"/cppunit.log"
-      if FileTest.file?(logfilePath) then
-        @logger.info "=> evaluating: "+logfilePath 
-        logfile = File.new(logfilePath, "r")
-        getTestResultsFromLog(logfile)
-        logfile.close
-        evaluated = true
+    if !@testType.eql?(TEST_TYPE_UNKNOWN) then
+      xmlfile = @outputFolder+"/test.xml"
+      logfile = @outputFolder+"/test.log"     
+      
+      if FileTest.file?(xmlfile) then
+        @logger.info "=> evaluating: "+xmlfile 
+        if @testType.eql?(TEST_TYPE_CPPUNIT) then
+          parseCppUnitXml(xmlfile)
+          evaluated = true
+        elsif @testType.eql?(TEST_TYPE_GOOGLE) then
+          parseGTestXml(xmlfile)
+          evaluated = true
+        end
+        if @testTotal > 0 && @testFailed > 0 then
+          failed = true
+        end    
+        
+      elsif FileTest.file?(logfile) then
+        @logger.info "=> evaluating: "+logfile 
+        if @testType.eql?(TEST_TYPE_CPPUNIT) then
+          failed = parseLogfile(logfile, "!!!FAILURES!!!")
+          evaluated = true
+        elsif @testType.eql?(TEST_TYPE_GOOGLE) then
+          failed = parseLogfile(logfile, "[  FAILED  ]")
+          evaluated = true
+        end  
+        
       end
-    end
+    end   
     
-    if !evaluated then
-      @logger.warn "missing test-results"
+    if evaluated then
+      if failed then
+        @logger.info "=> Test FAILED"
+        @status = Status::ERROR
+      elsif @status == Status::UNDEFINED then
+        @logger.info "=> Test OK"
+        @status = Status::SUCCEED
+      end
+    else
+      @logger.warn "Could not evaluate test-result"
     end
   end
 
@@ -102,49 +150,61 @@ private
     end
   end
   
-  def getTestResultsFromXml(file)
-    parse = false
-    while (line = file.gets)
-        if line.include?("<Statistics>") then
-          parse = true
-          next
-        end
-        if line.include?("</Statistics>") then
-          break
-        end
-        if parse then
-          if line =~ /^\s*<Tests>(\d+)<\/Tests>$/ && $~[1] != nil then
-            @testTotal = $~[1].to_i
+  def parseCppUnitXml(path)
+    file = File.new(path, "r")
+    begin
+      parse = false
+      while (line = file.gets)
+          if line.include?("<Statistics>") then
+            parse = true
+            next
           end
-          if line =~ /^\s*<FailuresTotal>(\d+)<\/FailuresTotal>$/ && $~[1] != nil then
-            @testFailed = $~[1].to_i
+          if line.include?("</Statistics>") then
+            break
           end
-        end
-    end
-    if @testTotal > 0 && @testFailed > 0 then
-      @logger.info "=> Test FAILED"
-      @status = Status::ERROR
-    else
-      @logger.info "=> Test OK"
-      @status = Status::SUCCEED
+          if parse then
+            if line =~ /^\s*<Tests>(\d+)<\/Tests>$/ && $~[1] != nil then
+              @testTotal = $~[1].to_i
+            end
+            if line =~ /^\s*<FailuresTotal>(\d+)<\/FailuresTotal>$/ && $~[1] != nil then
+              @testFailed = $~[1].to_i
+            end
+          end
+      end
+    ensure
+      file.close
     end
   end
   
-  def getTestResultsFromLog(file)
-    fail = false
-    while (line = file.gets)
-        if line.include?("!!!FAILURES!!!") then
-          fail = true
+  def parseGTestXml(path)
+    file = File.new(path, "r")
+    begin
+      while (line = file.gets)
+        if line =~ /^\s*<testsuites.*tests="(\d+)".*failures="(\d+)".*>$/ && $~[1] != nil && $~[2] != nil then
+          @testTotal = $~[1].to_i
+          @testFailed = $~[2].to_i
           break
         end
+      end
+    ensure
+      file.close
     end
-    if fail then
-      @logger.info "=> Test FAILED"
-      @status = Status::ERROR
-    else
-      @logger.info "=> Test OK"
-      @status = Status::SUCCEED
+  end
+  
+  def parseLogfile(path, token)
+    found = false
+    file = File.new(path, "r")
+    begin
+      while (line = file.gets)
+          if line.include?(token) then
+            found = true
+            break
+          end
+      end
+    ensure
+      file.close
     end
+    return found
   end
 
 end

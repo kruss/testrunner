@@ -12,11 +12,22 @@ class CppUnitRunner
     @logger = logger
     
 		@unitTests = Array.new					            # unit-tests within workspace
-    @status = Status::UNDEFINED
 	end
 	
 	attr_accessor :unitTests
-  attr_accessor :status
+
+  def status
+    if @unitTests.size() > 0 then
+      @unitTests.each do |unitTest|
+        if unitTest.status != Status::SUCCEED then
+          return Status::ERROR
+        end
+      end
+      return Status::SUCCEED
+    else
+      return Status::UNDEFINED
+    end
+  end
 
 	def fetchUnitTests
 		executable_pattern = "#{@workspaceFolder}/*/#{$AppOptions[:config]}/*.#{$AppOptions[:extention]}"
@@ -46,7 +57,8 @@ class CppUnitRunner
       @logger.emph unitTest.projectName
       begin
   			unitTest.createOutputFolder
-  			unitTest.runUnitTest
+        unitTest.analyseTest
+  			unitTest.runTest
         unitTest.moveTestOutput
         unitTest.evaluateTestOutput
       rescue => error
@@ -55,18 +67,5 @@ class CppUnitRunner
       end
 		end
 	end
-
-  def status
-    if @unitTests.size() > 0 then
-      @unitTests.each do |unitTest|
-        if unitTest.status != Status::SUCCEED then
-          return Status::ERROR
-        end
-      end
-      return Status::SUCCEED
-    else
-      return Status::UNDEFINED
-    end
-  end
 
 end

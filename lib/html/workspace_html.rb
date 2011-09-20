@@ -30,8 +30,8 @@ class WorkspaceHtml
     if unitTests.size() > 0 then
       html << "<table cellspacing=0 cellpadding=5 border=1> \n"
       html << "<tr>"
-      html << " <td width=150><b>Project</b></td>"
-      html << " <td width=100><b>Results</b></td>"
+      html << " <td width=200><b>Project</b></td>"
+      html << " <td width=150><b>Results</b></td>"
       html << " <td width=75><b>Status</b></td>"
       html << "</tr> \n"
       idx = 0
@@ -43,8 +43,8 @@ class WorkspaceHtml
         
         html << "<tr>"
         html << "<td>"+idx.to_s+".) <b>"
-        if FileTest.directory?(@outputFolder+"/"+projectName) then
-          html << "<a href='"+projectName+"'>"+projectName+"</a>"
+        if File.exist?(@outputFolder+"/"+projectName+"/test.log") then
+          html << "<a href='"+projectName+"/test.log'>"+projectName+"</a>"
         else
           html << projectName
         end
@@ -52,7 +52,7 @@ class WorkspaceHtml
         if unitTest.testTotal >= 0 && unitTest.testFailed >= 0 then
           html << "<td>total: "+unitTest.testTotal.to_s+" / failed: "+unitTest.testFailed.to_s+"</td>"
         else
-          html << "<td><i>no data</i></td>"
+          html << "<td><i>&lt;unknown&gt;</i></td>"
         end
         html << "<td>"+Status::getHtml(testStatus)+"</td>"
         html << "<tr> \n"

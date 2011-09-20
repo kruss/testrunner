@@ -152,7 +152,7 @@ private
 
     # final status
     logger.emph "#{Status::getString(cppunitRunner.status)}"
-    if $AppOptions[:fail] && cppunitRunner.status == Status::ERROR then
+    if $AppOptions[:fail] && cppunitRunner.status != Status::SUCCEED then
       exit(-1)
     end
   
