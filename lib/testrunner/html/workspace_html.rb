@@ -1,8 +1,8 @@
 # generates html output for test-results of an workspace
 
-require "core/cppunit_runner"
-require "util/html_util"
-require "util/file_util"
+require "testrunner/core/cppunit_runner"
+require "testrunner/util/html_util"
+require "testrunner/util/file_util"
 
 class WorkspaceHtml
 

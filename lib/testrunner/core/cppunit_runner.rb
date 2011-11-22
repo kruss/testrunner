@@ -2,7 +2,7 @@
 
 require "rake"
 require "pathname"
-require "data/unit_test"
+require "testrunner/data/unit_test"
 
 class CppUnitRunner
 

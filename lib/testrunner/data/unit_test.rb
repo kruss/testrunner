@@ -1,7 +1,7 @@
 # a unit-test project with gcov instrumented object-files
 
-require "util/command"
-require "util/status"
+require "testrunner/util/command"
+require "testrunner/util/status"
 require "fileutils"
 
 class UnitTest

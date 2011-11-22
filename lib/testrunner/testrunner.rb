@@ -1,13 +1,13 @@
 # run cppunit-tests within a workspace
 
 require "optparse"
-require "core/cppunit_runner"
-require "core/cppunit_output"
-require "util/gem_logger"
+require "testrunner/core/cppunit_runner"
+require "testrunner/core/cppunit_output"
+require "testrunner/util/gem_logger"
 
 $AppName = "testrunner"
 $AppNameUI = "Testrunner"
-$AppVersion = "0.1.1"
+$AppVersion = "0.2.0"
 $AppOutput = ".testrunner"
 $AppOptions = {}
 

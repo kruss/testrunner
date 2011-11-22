@@ -1,6 +1,6 @@
 # entry-point for command-line calls to the gem
 
-require 'testrunner'
+require "testrunner/testrunner"
 
 testRunner = TestRunner.new()
 testRunner.run()

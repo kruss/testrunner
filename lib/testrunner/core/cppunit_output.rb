@@ -1,7 +1,7 @@
 # creates output for gcov-data
 
-require "html/workspace_html"
-require "xml/workspace_xml"
+require "testrunner/html/workspace_html"
+require "testrunner/xml/workspace_xml"
 
 class CppUnitOutput
 
@@ -41,7 +41,7 @@ class CppUnitOutput
 	
   def createXmlOutput(cppunitRunner, outputFolder)
     begin
-      require "feedback"
+      require "feedback/feedback"
     rescue LoadError => error
       @logger.warn "could not create xml: #{error.message}"
       return nil
