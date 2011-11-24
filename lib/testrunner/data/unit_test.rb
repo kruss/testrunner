@@ -6,9 +6,9 @@ require "fileutils"
 
 class UnitTest
 
-  TEST_TYPE_UNKNOWN = "UNKNOWN"
-  TEST_TYPE_CPPUNIT = "CPPUNIT"
-  TEST_TYPE_GOOGLE = "GTEST"
+  TEST_TYPE_UNKNOWN     = "UNKNOWN"
+  TEST_TYPE_CPPUNIT     = "CPPUNIT"
+  TEST_TYPE_GOOGLE      = "GTEST"
   
 	def initialize(projectName, projectFolder, outputFolder, testExecutable, logger)
 		@projectName = projectName			      # name of project
@@ -27,9 +27,10 @@ class UnitTest
 	attr_accessor :projectFolder
 	attr_accessor :outputFolder
   attr_accessor :testExecutable
-  attr_accessor :status
+  attr_accessor :testType
   attr_accessor :testTotal
   attr_accessor :testFailed
+  attr_accessor :status
   
   def testOk
     if @testTotal >= 0 && @testFailed >=0 then
@@ -43,11 +44,11 @@ class UnitTest
     @logger.debug "analyse test: #{@testExecutable}"
     file = File.new(@testExecutable, "r")
     begin
-      while (line = file.gets.downcase)
-        if line.include?(TEST_TYPE_CPPUNIT.downcase) then
+      while (line = file.gets)
+        if line.include?("CppUnit") then
           @testType = TEST_TYPE_CPPUNIT
           break
-        elsif line.include?(TEST_TYPE_GOOGLE.downcase) then
+        elsif line.include?("gtest") then
           @testType = TEST_TYPE_GOOGLE
           break
         end
@@ -85,35 +86,28 @@ class UnitTest
     evaluated = false
     failed = false
     
-    if !@testType.eql?(TEST_TYPE_UNKNOWN) then
-      xmlfile = @outputFolder+"/test.xml"
-      logfile = @outputFolder+"/test.log"     
-      
-      if FileTest.file?(xmlfile) then
-        @logger.info "=> evaluating: "+xmlfile 
-        if @testType.eql?(TEST_TYPE_CPPUNIT) then
-          parseCppUnitXml(xmlfile)
-          evaluated = true
-        elsif @testType.eql?(TEST_TYPE_GOOGLE) then
-          parseGTestXml(xmlfile)
-          evaluated = true
-        end
-        if @testTotal > 0 && @testFailed > 0 then
-          failed = true
-        end    
-        
-      elsif FileTest.file?(logfile) then
-        @logger.info "=> evaluating: "+logfile 
-        if @testType.eql?(TEST_TYPE_CPPUNIT) then
-          failed = parseLogfile(logfile, "!!!FAILURES!!!")
-          evaluated = true
-        elsif @testType.eql?(TEST_TYPE_GOOGLE) then
-          failed = parseLogfile(logfile, "[  FAILED  ]")
-          evaluated = true
-        end  
-        
+    xmlfile = @outputFolder+"/test.xml"
+    logfile = @outputFolder+"/test.log"     
+    if !@testType.eql?(TEST_TYPE_UNKNOWN) && FileTest.file?(xmlfile) then
+      @logger.info "=> evaluating: #{xmlfile}"
+      if @testType.eql?(TEST_TYPE_CPPUNIT) then
+        parseCppUnitXml(xmlfile)
+        evaluated = true
+      elsif @testType.eql?(TEST_TYPE_GOOGLE) then
+        parseGoogleXml(xmlfile)
+        evaluated = true
       end
-    end   
+      if @testTotal > 0 && @testFailed > 0 then
+        failed = true
+      end    
+    elsif FileTest.file?(logfile) then
+      @logger.info "=> evaluating: #{logfile}" 
+      failed = parseLogfile(logfile, [ 
+        "!!!FAILURES!!!",   # CppUnit
+        "[  FAILED  ]"      # GTest
+      ])
+      evaluated = true
+    end
     
     if evaluated then
       if failed then
@@ -124,7 +118,8 @@ class UnitTest
         @status = Status::SUCCEED
       end
     else
-      @logger.warn "Could not evaluate test-result"
+      @logger.warn "Could not evaluate test"
+      @status = Status::UNDEFINED
     end
   end
 
@@ -137,7 +132,7 @@ class UnitTest
 private
 
   def getTestFolder()
-    return @projectFolder+"/"+Pathname.new(@testExecutable).relative_path_from(Pathname.new(@projectFolder)).cleanpath.to_s.split("/")[0]
+    return File.dirname(@testExecutable)
   end
   
   def moveFile(path, destination)
@@ -176,7 +171,7 @@ private
     end
   end
   
-  def parseGTestXml(path)
+  def parseGoogleXml(path)
     file = File.new(path, "r")
     begin
       while (line = file.gets)
@@ -191,14 +186,16 @@ private
     end
   end
   
-  def parseLogfile(path, token)
+  def parseLogfile(path, tokens)
     found = false
     file = File.new(path, "r")
     begin
-      while (line = file.gets)
-          if line.include?(token) then
-            found = true
-            break
+      while (line = file.gets) && !found
+          tokens.each do |token|  
+            if line.include?(token) then
+              found = true
+              break
+            end
           end
       end
     ensure
