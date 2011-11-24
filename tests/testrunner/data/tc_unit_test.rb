@@ -1,6 +1,7 @@
 require "test/unit"
 require "logger"
 require "testrunner/data/unit_test"
+require "testrunner/util/file_util"
 require "rake"
 
 module TcUnitTest
@@ -8,7 +9,7 @@ module TcUnitTest
 class TcUnitTest < Test::Unit::TestCase
   
   def setup  
-    @binaryFolder = "#{Dir.getwd}/tests/binary"
+    @binaryFolder = "#{Dir.getwd}/tests/binary/#{FileUtil.isWindows() ? "windows" : "linux"}"
     @outputFolder = "#{Dir.getwd}/tests/temp"
     @logger = Logger.new(NIL)
   end 

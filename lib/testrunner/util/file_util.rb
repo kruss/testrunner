@@ -13,14 +13,13 @@ class FileUtil
 
 	def FileUtil.openBrowser(path)
 		realpath = Pathname.new(path).realpath
-    platform = RUBY_PLATFORM.downcase
 		done = false
-		if platform.include?("mswin") || platform.include?("mingw") then	    # windows  
+		if FileUtil.isWindows() then 
 			done = system("rundll32 url.dll,FileProtocolHandler \"#{realpath}\"")	
-		elsif platform.include?("linux") then                                 # linux
+		elsif FileUtil.isLinux() then
 			browsers = Array[
-				"gnome-open", "kfmclient" , "exo-open", "htmlview", 				      # dektop browsers
-				"firefox", "seamonkey", "opera", "mozilla", "netscape", "galeon" 	# system browsers
+				"gnome-open", "kfmclient" , "exo-open", "htmlview",                 # dektop browsers
+				"firefox", "seamonkey", "opera", "mozilla", "netscape", "galeon"    # system browsers
 			]
 			browsers.each do |browser|
 				if system("#{browser} #{realpath}") then
@@ -28,14 +27,20 @@ class FileUtil
 					break
 				end
 			end		
-		elsif platform.include?("mac") || platform.include?("darwin") then   # mac
-			done = system("open", realpath)		
 		else
 			raise "unsupported platform: #{RUBY_PLATFORM}"
 		end	
 		if !done then
 			raise "unable to open browser: #{path}"
 		end
+  end
+  
+  def FileUtil.isWindows()
+  	return RUBY_PLATFORM.downcase.include?("mswin") || RUBY_PLATFORM.downcase.include?("mingw")
+  end
+  
+  def FileUtil.isLinux()
+  	return RUBY_PLATFORM.downcase.include?("linux")
   end
 
 end
